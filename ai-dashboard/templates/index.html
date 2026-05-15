@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Dashboard — Laporan Perusahaan</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0e1520;
+    --border: #1a2535;
+    --accent: #00d4ff;
+    --accent2: #7b61ff;
+    --positive: #00e5a0;
+    --negative: #ff4d6d;
+    --neutral: #f5c400;
+    --text: #c8d8e8;
+    --muted: #4a6070;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: 'Syne', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.5rem 2.5rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(14,21,32,0.95);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-size: 1.3rem; font-weight: 800; letter-spacing: 2px; color: var(--accent); }
+  .logo span { color: var(--text); }
+  .status-dot { width: 8px; height: 8px; background: var(--positive); border-radius: 50%; display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  main { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem; }
+  h2 { font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.4rem 1.6rem;
+    transition: border-color .2s;
+  }
+  .stat-card:hover { border-color: var(--accent2); }
+  .stat-label { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+  .stat-value { font-size: 2.4rem; font-weight: 800; margin-top: .3rem; line-height: 1; }
+  .stat-value.blue { color: var(--accent); }
+  .stat-value.green { color: var(--positive); }
+  .stat-value.red { color: var(--negative); }
+  .stat-value.yellow { color: var(--neutral); }
+
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 2rem; margin-bottom: 2rem;
+  }
+  textarea {
+    width: 100%; background: #070b10; border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 1rem;
+    font-family: 'Space Mono', monospace; font-size: 0.85rem;
+    resize: vertical; min-height: 130px; outline: none;
+    transition: border-color .2s;
+  }
+  textarea:focus { border-color: var(--accent); }
+  .btn {
+    margin-top: 1rem; padding: .75rem 2rem; border: none;
+    background: var(--accent); color: #000; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 0.9rem; border-radius: 8px; cursor: pointer;
+    letter-spacing: 1px; transition: opacity .2s, transform .1s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  #result-box {
+    margin-top: 1.5rem; display: none;
+    background: #070b10; border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.5rem;
+  }
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  .result-item label { font-size: 0.65rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; font-family: 'Space Mono', monospace; }
+  .result-item p { margin-top: .25rem; font-size: 1rem; font-weight: 700; }
+  .badge {
+    display: inline-block; padding: .2rem .7rem; border-radius: 20px;
+    font-size: .75rem; font-weight: 700; letter-spacing: 1px;
+  }
+  .badge.positive { background: rgba(0,229,160,.12); color: var(--positive); }
+  .badge.negative { background: rgba(255,77,109,.12); color: var(--negative); }
+  .badge.neutral { background: rgba(245,196,0,.12); color: var(--neutral); }
+  .badge.high { background: rgba(255,77,109,.12); color: var(--negative); }
+  .badge.medium { background: rgba(245,196,0,.12); color: var(--neutral); }
+  .badge.low { background: rgba(0,229,160,.12); color: var(--positive); }
+  .topics { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+  .topic-tag {
+    background: rgba(123,97,255,.15); color: var(--accent2);
+    border-radius: 6px; padding: .2rem .7rem; font-size: .75rem;
+    font-family: 'Space Mono', monospace;
+  }
+  .loader { display: none; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin-left: 10px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .chart-bar-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .6rem; font-family: 'Space Mono', monospace; font-size: .7rem; }
+  .chart-bar-bg { flex: 1; background: var(--border); border-radius: 4px; height: 10px; overflow: hidden; }
+  .chart-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); transition: width 1s ease; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">AI<span>DASH</span></div>
+  <div style="font-size:.8rem; color:var(--muted); font-family:'Space Mono',monospace;">
+    <span class="status-dot"></span>SISTEM AKTIF
+  </div>
+</header>
+<main>
+  <!-- Stats -->
+  <h2>Ringkasan Analisis</h2>
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total Analisis</div><div class="stat-value blue" id="stat-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">Positif</div><div class="stat-value green" id="stat-pos">—</div></div>
+    <div class="stat-card"><div class="stat-label">Negatif</div><div class="stat-value red" id="stat-neg">—</div></div>
+    <div class="stat-card"><div class="stat-label">Risiko Tinggi</div><div class="stat-value yellow" id="stat-risk">—</div></div>
+  </div>
+
+  <!-- Input Panel -->
+  <h2>Analisis Teks Baru</h2>
+  <div class="panel">
+    <textarea id="input-text" placeholder="Masukkan laporan, email, atau teks bisnis yang ingin dianalisis oleh AI..."></textarea>
+    <button class="btn" id="analyze-btn" onclick="analyze()">
+      Analisis Sekarang
+      <span class="loader" id="loader"></span>
+    </button>
+  </div>
+
+  <!-- Result -->
+  <div id="result-box">
+    <h2 style="margin-bottom:1.2rem;">Hasil Analisis</h2>
+    <div class="result-grid">
+      <div class="result-item">
+        <label>Sentimen</label>
+        <p><span id="r-sentiment" class="badge">—</span></p>
+      </div>
+      <div class="result-item">
+        <label>Tingkat Risiko</label>
+        <p><span id="r-risk" class="badge">—</span></p>
+      </div>
+    </div>
+    <div class="result-item" style="margin-bottom:1rem;">
+      <label>Ringkasan</label>
+      <p id="r-summary" style="font-size:.95rem; font-weight:400; margin-top:.4rem; color:var(--text); line-height:1.6;">—</p>
+    </div>
+    <div class="result-item" style="margin-bottom:1rem;">
+      <label>Insight Bisnis</label>
+      <p id="r-insight" style="font-size:.9rem; font-weight:400; margin-top:.4rem; color:var(--muted); line-height:1.6;">—</p>
+    </div>
+    <div class="result-item" style="margin-bottom:1rem;">
+      <label>Topik Utama</label>
+      <div class="topics" id="r-topics"></div>
+    </div>
+    <div class="result-item">
+      <label>Action Items</label>
+      <ul id="r-actions" style="margin-top:.4rem; padding-left:1.2rem; font-size:.9rem; line-height:2;"></ul>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="panel" style="margin-top:2rem;" id="chart-panel" style="display:none;">
+    <h2 style="margin-bottom:1.2rem;">Tren Skor Sentimen (7 Analisis Terakhir)</h2>
+    <div id="chart-container"></div>
+  </div>
+</main>
+
+<script>
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/stats');
+      const d = await res.json();
+      document.getElementById('stat-total').textContent = d.total ?? '0';
+      document.getElementById('stat-pos').textContent = d.positive ?? '0';
+      document.getElementById('stat-neg').textContent = d.negative ?? '0';
+      document.getElementById('stat-risk').textContent = d.high_risk ?? '0';
+      if (d.chart_data && d.chart_data.length > 0) renderChart(d.chart_data);
+    } catch(e) {}
+  }
+
+  function renderChart(data) {
+    const container = document.getElementById('chart-container');
+    container.innerHTML = '';
+    data.forEach(d => {
+      const pct = Math.round((d.sentiment_score || 0.5) * 100);
+      container.innerHTML += `
+        <div class="chart-bar-row">
+          <span style="width:70px;color:var(--muted)">${d.date}</span>
+          <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${pct}%"></div></div>
+          <span style="color:var(--accent);width:38px;">${pct}%</span>
+          <span class="badge ${d.risk}">${d.risk}</span>
+        </div>`;
+    });
+    document.getElementById('chart-panel').style.display = 'block';
+  }
+
+  async function analyze() {
+    const text = document.getElementById('input-text').value.trim();
+    if (!text) return;
+    const btn = document.getElementById('analyze-btn');
+    const loader = document.getElementById('loader');
+    btn.disabled = true; loader.style.display = 'inline-block';
+
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text })
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        const d = json.data;
+        document.getElementById('result-box').style.display = 'block';
+        const s = document.getElementById('r-sentiment');
+        s.textContent = d.sentiment; s.className = `badge ${d.sentiment}`;
+        const r = document.getElementById('r-risk');
+        r.textContent = d.risk_level; r.className = `badge ${d.risk_level}`;
+        document.getElementById('r-summary').textContent = d.summary;
+        document.getElementById('r-insight').textContent = d.insights;
+        const topics = document.getElementById('r-topics');
+        topics.innerHTML = (d.key_topics||[]).map(t=>`<span class="topic-tag">${t}</span>`).join('');
+        const actions = document.getElementById('r-actions');
+        actions.innerHTML = (d.action_items||[]).map(a=>`<li>${a}</li>`).join('');
+        loadStats();
+      }
+    } catch(e) { alert('Terjadi error: ' + e.message); }
+    finally { btn.disabled = false; loader.style.display = 'none'; }
+  }
+
+  loadStats();
+</script>
+</body>
+</html>
