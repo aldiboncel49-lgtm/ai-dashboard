@@ -18,7 +18,7 @@ Dashboard berbasis web untuk menganalisis teks bisnis (laporan, email, dokumen) 
 
 ### 1. Clone Repositori
 ```bash
-git clone https://github.com/username/ai-dashboard.git
+git clone https://github.com/aldiboncel49-lgtm/ai-dashboard.git
 cd ai-dashboard
 ```
 
